@@ -38,7 +38,7 @@ class DialogSession():
 		return new_session
 
 	def add_single(self, role, da, utt):
-		if len(self.history) % 2 == 0:
+		if len(self.history) % 2 == 1:
 			assert(role == self.SYS)
 		else:
 			assert(role == self.USR)

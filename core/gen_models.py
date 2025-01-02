@@ -83,43 +83,19 @@ class DialogModel(ABC):
 	def get_utterance(self, state:DialogSession, action) -> str:
 		raise NotImplementedError
 	
-	def get_utterance_batched(self, state:DialogSession, action:int, batch:int) -> List[str]:
-		raise NotImplementedError
+	# def get_utterance_batched(self, state:DialogSession, action:int, batch:int) -> List[str]:
+	# 	raise NotImplementedError
 
-	@abstractmethod
-	def get_utterance_w_da(self, state:DialogSession, action) -> Tuple[str, str]:
-		# this is used for user agent. should not be used for system agent
-		raise NotImplementedError
+	# @abstractmethod
+	# def get_utterance_w_da(self, state:DialogSession, action) -> Tuple[str, str]:
+	# 	# this is used for user agent. should not be used for system agent
+	# 	raise NotImplementedError
 	
-	def get_utterance_w_da_from_batched_states(self, states:List[DialogSession], action=None):
-		# this is used for user agent. should not be used for system agent
-		raise NotImplementedError
+	# def get_utterance_w_da_from_batched_states(self, states:List[DialogSession], action=None):
+	# 	# this is used for user agent. should not be used for system agent
+	# 	raise NotImplementedError
 		
-
-
-class APIModel(GenerationModel):
-	API_TOKEN = os.environ.get("HF_API_KEY")
-
-	def __init__(self):
-		# self.API_URL = "https://api-inference.huggingface.co/models/EleutherAI/gpt-j-6B"
-		self.API_URL = "https://api-inference.huggingface.co/models/gpt2-large"
-		self.headers: dict[str, str] = {"Authorization": f"Bearer {APIModel.API_TOKEN}"}
-		self.inference_args = {
-			"max_new_tokens": 100,
-			"temperature": 0.7,
-			"repetition_penalty": 1.2,
-			"return_full_text": False
-		}
-		return
-
-	def generate(self, input_text, **_args):
-		data = {
-			"inputs": input_text,
-			"parameters": _args or self.inference_args
-		}
-		response = requests.post(self.API_URL, headers=self.headers, json=data)
-		return response.json()
-
+		
 
 class OpenAIModel(GenerationModel):
 	API_TOKEN = os.environ.get("OPENAI_API_KEY")
