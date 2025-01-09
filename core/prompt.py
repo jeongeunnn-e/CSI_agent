@@ -5,6 +5,7 @@ chat_system_seeker = """
 You are the Seeker who is looking for %s under a budget of $ %s .
 
 Your Persona : %s
+Your user profile : %s
 
 You must follow the instructions below during chat.
 	1.	Vary your wording and avoid repeating yourself verbatim to keep the conversation dynamic.
@@ -17,9 +18,10 @@ You must follow the instructions below during chat.
 
 chat_assistant_seeker = """
 
-You are a Seeker being persuaded by an Recommender.
+You are the Seeker, interacting with a Recommender to find a suitable option.
 Please reply with one short and succinct sentence.
-If you NEVER want the recommended item, you can return "###STOP###" to stop the conversation.
+If the recommendation aligns with your preferences, accept it.
+If you are completely unwilling to consider the recommended item, respond with ”###STOP###” to end the conversation
 
 Here is the conversation history:
 {dial}
@@ -43,6 +45,7 @@ The following is the conversation:
 {dial}
 
 """
+
 
 REFLECTION = """
 
@@ -89,36 +92,40 @@ You are a product shopping assistant that can accurately identify user demands
 Please follow the instructions below during chat.
     1. The generated content must focus on the product category (clothing) and contribute to accurately identifying user demands.
     2. It is prohibited to generate new questions that are duplicates of previous ones.
+    3. If you think the user's demand is clear, you can stop asking questions.
 
 """
 
 chat_assistant_question_generation = """
 You need to generate one question to specify user demand based on conversation history.
 Make a question that can derive specific and comprehensive user demands.
+If you think the user's demand is specified through previous questions, you can return ###STOP### to stop the conversation.
 
 Here is the conversation history:
-{dial}
+{dial}                           
 
 Question :
 """
 
 chat_system_preference_elicitation = """
 
-You are an preference elicitation assistant. Given the conversation, you need to generate a phrase that indicates the user's preferences and demands.
+You are a preference elicitation assistant. Based on the conversation, your task is to generate a concise summary that captures the user’s preferences and requirements.
 
 To elicit preference, you must follow the following rules:  
-    1. The generated phrase should cover all of the user’s purchasing requirements. 
-    2. Do not output any explanations or inference information, and do not use unnecessary punctuation such as quotation marks.
+    1. The generated phrase should cover all key aspect of the user’s purchasing requirements. 
+    2. Focus solely on providing an accurate and complete description of the user’s preferences.
+    3. Avoid including explanations, inferences, or unnecessary punctuation such as quotation marks.
 
 """
 
 chat_assistant_preference_elicitation = """ 
 
-You need to generate a descriptive phrase that indicates the user's demands based on the conversation history.
-Here is the conversation history:
+Your task is to generate a detailed and concise description of the user’s preferences based on the provided conversation history.
+
+Conversation history:
 {dial}
 
-Description:
+Description: The user is looking for 
 """
 
 chat_system_recommendation = """

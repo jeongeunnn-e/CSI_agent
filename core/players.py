@@ -7,9 +7,11 @@ from core.gen_models import DialogModel
 from core.game import CRS
 from core.prompt import *
 from core.generate import *
-from core.item import *
+from core.retrieve import *
 from core.gen_models import OpenAIChatModel
+from colorama import Fore, Back, Style, init
 
+init(autoreset=True) 
 
 logger = logging.getLogger(__name__)
 
@@ -34,19 +36,20 @@ class Recommender(DialogModel):
 		self.mode = 'preference elicitation'
 	
 	def change_mode(self):
-		logger.info(f"Changing mode from Question Generation to Persuasion")
+		print(Back.LIGHTBLACK_EX + "Changing mode from Question Generation to Persuasion")
 		if self.mode == 'persuasion':
 			return 1
 		
 		self.mode = 'persuasion'
 		self.item = self.retriever.retrieve(self.preference)
-		logger.info("[INFO] Item selected: ", self.item.name)
+		print(Back.LIGHTBLACK_EX + "[INFO] Item selected: " + self.item.name + "\n")
 		return 1
 	
 	def get_utterance(self, state:DialogSession, action) -> str:
 
 		if len(state)==3:
 			self.change_mode()
+			self.preference = chat_based_preference_elicitation(self.backbone_model, state, self.inference_args)
 			next_utt = chat_based_recommendation(self.backbone_model, state, self.inference_args, self.item, self.preference)
 			return next_utt
 	
@@ -96,7 +99,7 @@ class Seeker(DialogModel):
 
 	def get_initial_utterance(self):
 		init_utt = f"Hi, I'm looking for {self.item_request}."
-		print("Seeker: ", init_utt)
+		print(Fore.MAGENTA + "Seeker:" + Style.RESET_ALL + " " + init_utt + "\n")
 		return init_utt
 		
 

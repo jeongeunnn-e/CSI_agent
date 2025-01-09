@@ -2,6 +2,8 @@ import json
 
 from core.prompt import *
 from core.helpers import DialogSession
+from colorama import Fore, Style, init
+init(autoreset=True)
 
 def react_based(backbone_model, task_prompt, state:DialogSession):
 
@@ -46,7 +48,6 @@ def chat_based_question_generation(backbone_model, state:DialogSession, inferenc
     response = backbone_model.chat_generate(message, **inference_args)[0]['generated_text']
 
     preference = chat_based_preference_elicitation(backbone_model, state, inference_args)
-    print(f"Preference: {preference}")
 
     return response, preference
 
@@ -64,7 +65,13 @@ def chat_based_preference_elicitation(backbone_model, state:DialogSession, infer
     
         response = backbone_model.chat_generate(message, **inference_args)[0]['generated_text']
     
-        return response
+        try:
+            preference = response.split("The user is looking for ")[1].strip()
+        except:
+            preference = response
+
+        print(f"{Fore.LIGHTBLUE_EX}Preference: {Style.RESET_ALL}{preference}\n")
+        return preference
 
 
 def chat_based_recommendation(backbone_model, state:DialogSession, inference_args, item, preference):
@@ -90,8 +97,8 @@ def chat_based_persuasion(backbone_model, state:DialogSession, inference_args, i
         conversation_history += f"{role}: {utt}\n"
     
     message = [
-        {'role':'system', 'content': chat_system_recommendation},
-        {'role': 'user', 'content': chat_assistant_recommendation.format(item_request=preference, item_info=item.description, action=action)}
+        {'role':'system', 'content': chat_system_persuasion},
+        {'role': 'user', 'content': chat_assistant_persuasion.format(item_request=preference, item_info=item.description, action=action)}
     ]
 
     response = backbone_model.chat_generate(message, **inference_args)[0]['generated_text']
@@ -130,6 +137,9 @@ def chat_based_seeker(backbone_model, state:DialogSession, profile):
 
     response = backbone_model.chat_generate(message)
     response = response[0]['generated_text']
+
+    if 'Seeker' in response:
+        return response.split('Seeker: ')[1].strip()
 
     return response
 

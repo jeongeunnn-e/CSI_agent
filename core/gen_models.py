@@ -12,7 +12,7 @@ from typing import List, Tuple, Dict
 from core.helpers import DialogSession
 from functools import lru_cache
 from tenacity import retry, stop_after_attempt,	wait_exponential, wait_fixed  # for exponential backoff
-from utils.utils import hashabledict
+from core.utils import hashabledict
 
 
 logger = logging.getLogger(__name__)

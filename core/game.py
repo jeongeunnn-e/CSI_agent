@@ -1,11 +1,11 @@
-import logging
-import json
 from core.gen_models import DialogModel
 from core.helpers import DialogSession
 from core.gen_models import OpenAIChatModel
 from core.generate import chat_based_reward
+from colorama import Fore, Style, init
 
-logger = logging.getLogger(__name__)
+init(autoreset=True) 
+
 
 class CRS(object):
 	SYS = "Recommender"
@@ -17,9 +17,9 @@ class CRS(object):
 
 		self.system_agent = system_agent
 		self.user_agent = user_agent
-
 		self.max_conv_turns = max_conv_turns
 		self.backbone_model = OpenAIChatModel('gpt-4o-mini')
+
 		return
 	
 	def init_dialog(self) -> DialogSession:  # [(sys_act, sys_utt, user_act, user_utt), ...]
@@ -35,7 +35,8 @@ class CRS(object):
 		usr_utt = usr.get_utterance(state)
 		state.add_single(CRS.USR, None, usr_utt)
 
-		print(f"\nRecommender: [{sys_da}] {sys_utt}\nSeeker: {usr_utt}\n")
+		print(Fore.YELLOW + "Recommender:" + Style.RESET_ALL + " " + Fore.GREEN + "[" + sys_da + "]" + Style.RESET_ALL + " " + sys_utt)
+		print(Fore.MAGENTA + "Seeker:" + Style.RESET_ALL + " " + usr_utt + "\n")
 
 		reward, done = self._get_reward(state, sys)
 		return state, reward, done
