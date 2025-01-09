@@ -1,25 +1,22 @@
+import json
 
-def load_dataset(filename):
-    dataset = {'train':[], 'test':[]}
-    for key in dataset:
-        with open("%s-%s.txt"%(filename, key),'r') as infile:
-            for line in infile:
-                dataset[key].append(eval(line.strip('\n')))
-    return dataset
+def load_dataset(filename='data/persona_temp0.7_interactions.json'):
+    with open(filename, 'r') as f:
+        json_data = json.load(f)
+    
+    data = [ UserRequest(key, value) for key, value in json_data.items() ]
+    return data
 
-class Data:
-    def __init__(self, filename):
-        self.data = self._load_data(filename)
 
-    def _load_data(filename):
-        data = []
-        
-        with open(filename,'r') as infile:
-            for line in infile:
-                temp = eval(line.strip('\n'))
-                item_description = temp['item_description']
-                budget = temp['budget']
-                profile = temp['user_profile']
-                data.append((item_description, budget, profile))
-        
-        return data
+class UserRequest:
+    def __init__(self, id, data):
+        self.id = id
+
+        # information for conversation
+        self.persona = data['persona_description']
+        self.profile = data['user_profile']
+        self.target_category = data['target_category']
+        self.target_budget = data['target_price']
+
+        # GT for the recommendation task
+        self.pos_ids = data['target']

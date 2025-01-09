@@ -41,8 +41,8 @@ class Recommender(DialogModel):
 			return 1
 		
 		self.mode = 'persuasion'
-		self.item = self.retriever.retrieve(self.preference)
-		print(Back.LIGHTBLACK_EX + "[INFO] Item selected: " + self.item.name + "\n")
+		self.recommendation = self.retriever.retrieve(self.preference)
+		print("[INFO] Item selected: " + self.recommendation.name + "\n")
 		return 1
 	
 	def get_utterance(self, state:DialogSession, action) -> str:
@@ -50,7 +50,7 @@ class Recommender(DialogModel):
 		if len(state)==3:
 			self.change_mode()
 			self.preference = chat_based_preference_elicitation(self.backbone_model, state, self.inference_args)
-			next_utt = chat_based_recommendation(self.backbone_model, state, self.inference_args, self.item, self.preference)
+			next_utt = chat_based_recommendation(self.backbone_model, state, self.inference_args, self.recommendation, self.preference)
 			return next_utt
 	
 		if self.mode == 'preference elicitation':
@@ -81,7 +81,6 @@ class Recommender(DialogModel):
 	
 
 	
-
 class Seeker(DialogModel):
 
 	def __init__(self, inference_args={}):
@@ -91,19 +90,20 @@ class Seeker(DialogModel):
 		self.inference_args = inference_args
 		return
 	
-	def _init_profile(self, profile):
-		self.item_request = "Summer Shoes"
-		self.budget = profile['budget']
-		self.profile = profile['user_profile']
-		self.user_profile = (self.item_request, self.budget, self.profile)
+	def _init_profile(self, user_data):
+		self.item_request = user_data.target_category
+		self.user_data = user_data
 
 	def get_initial_utterance(self):
 		init_utt = f"Hi, I'm looking for {self.item_request}."
 		print(Fore.MAGENTA + "Seeker:" + Style.RESET_ALL + " " + init_utt + "\n")
 		return init_utt
 		
-
 	def get_utterance(self, state:DialogSession, action=None) -> str:
-		user_resp = chat_based_seeker(self.backbone_model, state, self.user_profile)
+		user_resp = chat_based_seeker(self.backbone_model, state, self.user_data)
 		return user_resp
 	
+	def check_acceptance(self, recommendation_id):
+		if recommendation_id in self.user_data.pos_ids:
+			return True
+		return False
