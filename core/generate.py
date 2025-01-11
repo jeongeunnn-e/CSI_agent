@@ -1,14 +1,10 @@
 import json
-
 from core.prompt import *
 from core.helpers import DialogSession
 from colorama import Fore, Style, init
 init(autoreset=True)
 
 def react_based(backbone_model, task_prompt, state:DialogSession):
-
-    if len(state) == 0:
-        return f"Hi, What can I help you with today?"
     
     obs = state[-1][2]
     print(f"Observation: {obs}")
@@ -33,6 +29,7 @@ def react_based(backbone_model, task_prompt, state:DialogSession):
     turn += 1
 
     return action[action.find('[') + 1 : action.find(']', action.find('['))].strip() if '[' in action and ']' in action else action
+
 
 def chat_based_question_generation(backbone_model, state:DialogSession, inference_args):
 
@@ -122,17 +119,15 @@ def chat_based_reward(backbone_model, state:DialogSession, item):
 
     return response
 
-def chat_based_seeker(backbone_model, state:DialogSession, profile):
+def chat_based_seeker(backbone_model, state:DialogSession, user_data):
 
     conversation_history = ""
     for (role, da, utt) in state:
         conversation_history += f"{role}: {utt}\n"
-
-    item_request, budget, user_profile = profile
     
     message = [
-        {'role':'system', 'content': chat_system_seeker % (item_request, budget, user_profile) },
-        {'role': 'user', 'content': chat_assistant_seeker.format(dial=conversation_history)}
+        {'role':'system', 'content': chat_system_seeker.format(user_personality=user_data.user_personality, user_decision_making_style=user_data.decision_making_style, target_needs=user_data.target_needs, user_profile=user_data.user_profile) },
+        {'role': 'user', 'content': chat_assistant_seeker.format(dialogue_context=conversation_history)}
     ]
 
     response = backbone_model.chat_generate(message)
@@ -142,6 +137,21 @@ def chat_based_seeker(backbone_model, state:DialogSession, profile):
         return response.split('Seeker: ')[1].strip()
 
     return response
+
+
+def _conv_history_to_list(state):
+    conversation_history = []
+    for (role, da, utt) in state:
+        conversation_history.append({"role": role, "content": utt})
+    return conversation_history
+
+
+def _conv_history_to_string(state):
+    conversation_history = ""
+    for (role, da, utt) in state:
+        conversation_history += f"{role}: {utt}\n"
+    return conversation_history
+
 
 def _clear_chat_response(response):
     try:

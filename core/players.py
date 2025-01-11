@@ -28,7 +28,7 @@ class Recommender(DialogModel):
 		self.backbone_model = OpenAIChatModel('gpt-4o-mini')
 		self.max_hist_num_turns = 3
 		self.inference_args = inference_args
-		
+		self.recommendation = None
 		self.retriever = Retriever()
 		return
 	
@@ -46,19 +46,25 @@ class Recommender(DialogModel):
 		return 1
 	
 	def get_utterance(self, state:DialogSession, action) -> str:
-
-		if len(state)==3:
-			self.change_mode()
-			self.preference = chat_based_preference_elicitation(self.backbone_model, state, self.inference_args)
-			next_utt = chat_based_recommendation(self.backbone_model, state, self.inference_args, self.recommendation, self.preference)
-			return next_utt
-	
-		if self.mode == 'preference elicitation':
-			next_utt, self.preference = chat_based_question_generation(self.backbone_model, state, self.inference_args)
-			return next_utt
 		
-		next_utt = chat_based_persuasion(self.backbone_model, state, self.inference_args, self.item, self.preference, self.da_prompts_mapping[action])
-		return next_utt
+		if action.lower() in [ 'contextual probing', 'preference narrowing']:
+			next_utt, self.preference = chat_based_question_generation(self.backbone_model, state, self.inference_args)
+			return None, next_utt
+		
+		if action.lower() in ['recommendation']:
+			self.preference = chat_based_preference_elicitation(self.backbone_model, state, self.inference_args)
+			self.recommendation = self.retriever.retrieve(self.preference )
+			print(Back.LIGHTBLACK_EX +"[INFO] Item retrieved: " + self.recommendation.name +  Style.RESET_ALL + "\n")
+			print(self.recommendation.id)
+			next_utt = chat_based_recommendation(self.backbone_model, state, self.inference_args, self.recommendation, self.preference)
+			return self.recommendation.id, next_utt
+
+		if self.recommendation is None:
+			self.recommendation = self.retriever.retrieve(self.preference )
+			print(Back.LIGHTBLACK_EX +"[INFO] Item retrieved: " + self.recommendation.name +  Style.RESET_ALL + "\n")
+			print(self.recommendation.id)
+		next_utt = chat_based_persuasion(self.backbone_model, state, self.inference_args, self.recommendation, self.preference, self.da_prompts_mapping[action])
+		return self.recommendation.id, next_utt
 
 	def __process_chat_exp(self, exp: DialogSession, max_hist_num_turns: int = -1):
 		if not exp:
@@ -91,7 +97,7 @@ class Seeker(DialogModel):
 		return
 	
 	def _init_profile(self, user_data):
-		self.item_request = user_data.target_category
+		self.item_request = "Amazon Fashion" # user_data.target_category
 		self.user_data = user_data
 
 	def get_initial_utterance(self):

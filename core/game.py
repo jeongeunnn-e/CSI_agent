@@ -2,7 +2,7 @@ from core.gen_models import DialogModel
 from core.helpers import DialogSession
 from core.gen_models import OpenAIChatModel
 from core.generate import chat_based_reward
-from colorama import Fore, Style, init
+from colorama import Fore, Back, Style, init
 
 init(autoreset=True) 
 
@@ -29,13 +29,16 @@ class CRS(object):
 
 	def step(self, state, sys, usr, sys_da):
 
-		sys_utt = sys.get_utterance(state, sys_da)
+		recommend_id, sys_utt = sys.get_utterance(state, sys_da)
 		state.add_single(CRS.SYS, sys_da, sys_utt)
 
+		# if usr.check_acceptance(recommend_id):
+		# 	print(Back.RED + "Accept sucessfuly")
 		usr_utt = usr.get_utterance(state)
 		state.add_single(CRS.USR, None, usr_utt)
 
 		print(Fore.YELLOW + "Recommender:" + Style.RESET_ALL + " " + Fore.GREEN + "[" + sys_da + "]" + Style.RESET_ALL + " " + sys_utt)
+		# print(Fore.YELLOW + "Recommender:" + Style.RESET_ALL + " " + sys_utt)
 		print(Fore.MAGENTA + "Seeker:" + Style.RESET_ALL + " " + usr_utt + "\n")
 
 		reward, done = self._get_reward(state, sys)
@@ -46,7 +49,7 @@ class CRS(object):
 		if sys.mode == 'preference elicitation':
 			return 0, False
 
-		response = chat_based_reward(self.backbone_model, state, sys.item)
+		response = chat_based_reward(self.backbone_model, state, sys.recommendation)
 
 		if state[-1][0] == CRS.USR and "#STOP#" in state[-1][2]:
 			return -1, True

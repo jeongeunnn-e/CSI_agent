@@ -9,6 +9,7 @@ from abc import ABC, abstractmethod
 from collections import Counter
 from core.agent.ppdpp import PPDPP
 from core.agent.config import get_config
+from core.agent.react import ReActPlanner
 # from core.agent.mcts_base import MCTSPlanner
 
 logger = logging.getLogger(__name__)
@@ -49,6 +50,8 @@ class SystemPlanner(object):
 				act=self.dialog_acts,
 				args=get_config("PPDPP")
 			)
+		if agent_type == "ReAct":
+			return ReActPlanner()
 		if agent_type == "MCTS":
 			return MCTSPlanner(
 				game=game,

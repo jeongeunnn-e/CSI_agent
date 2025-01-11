@@ -1,6 +1,8 @@
 import json
 import pickle
 from scipy.spatial.distance import cosine
+from core.prompt import *
+from core.gen_models import OpenAIChatModel
 from sentence_transformers import SentenceTransformer
 
 class Item(object):
@@ -40,27 +42,59 @@ class Item(object):
         
 class Retriever(object):
     def __init__(self):
+        self.product_category = "clothing"
         self._load_item_database()
-        self.model = SentenceTransformer('sentence-transformers/sentence-t5-base')
+        self.model = SentenceTransformer("thenlper/gte-large")
+        self.backbone_model = OpenAIChatModel('gpt-4o-mini')
 
     def retrieve(self, query):
+        searched_category = self._chat_base_category_search(query)
         query_emb = self.model.encode(query)
-        retrieve_item_id, _ = self.find_most_similar(query_emb)
+        retrieve_item_ids = self._find_top_k_similar(searched_category, query_emb)
+        print(retrieve_item_ids)
+        retrieve_item_id = retrieve_item_ids[0]
         return Item(retrieve_item_id, self.item_db[self.id2asin[retrieve_item_id]])
     
-    def find_most_similar(self, query_embedding):
-        most_similar_id = max(self.emb, key=lambda key: 1 - cosine(query_embedding, self.emb[key]))
-        highest_similarity = 1 - cosine(query_embedding, self.emb[most_similar_id])
+    def _find_top_k_similar(self, searched_category, query_embedding, k=5):
+        
+        specific_keys = self.category_dict[searched_category]
+        new_dict = {key: self.emb[key] for key in specific_keys if key in self.emb}
+        
+        similarities = [
+            (key, 1 - cosine(query_embedding, new_dict[key]))
+            for key in new_dict
+        ]
+        
+        similarities = sorted(similarities, key=lambda x: x[1], reverse=True)
+        return [key for key, _ in similarities[:k]]
+    
+    def _chat_base_category_search(self, query):
 
-        return most_similar_id, highest_similarity
+        message = [
+            {'role':'system', 'content': chat_system_category_search},
+            {'role': 'user', 'content': chat_assistant_category_search.format(search_query=query, category_list=str(self.category_list))}
+        ]
 
+        response = self.backbone_model.chat_generate(message)
+        response = response[0]['generated_text']
+        try:
+            response = response.split("Selected category: ")[1]
+        except:
+            print(response)
+        response = response.replace("'","").replace("*", "")
+        return response
+        
     def _load_item_database(self):
-        with open('data/meta_dict.json', 'r') as f:
+        with open(f'data/{self.product_category}/meta_dict.json', 'r') as f:
             self.item_db = json.load(f)
         
-        with open('data/item_embedding.pkl', 'rb') as file:
+        with open(f'data/{self.product_category}/item_embedding_gte.pkl', 'rb') as file:
             self.emb = pickle.load(file)
 
-        with open('data/asin2id.json', 'r') as f:
+        with open(f'data/{self.product_category}/asin2id.json', 'r') as f:
             asin2id = json.load(f)
         self.id2asin = {value: key for key, value in asin2id.items()}
+        
+        with open(f'data/{self.product_category}/category_dict.json', 'r') as f:
+            self.category_dict = json.load(f)
+        self.category_list = list(self.category_dict.keys())
