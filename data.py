@@ -1,6 +1,6 @@
 import json
 
-def load_dataset(filename='data/persona_temp0.7_interactions.json'):
+def load_dataset(filename='data/clothing/user__needs_w_target.json'):
     with open(filename, 'r') as f:
         json_data = json.load(f)
     
@@ -13,10 +13,10 @@ class UserRequest:
         self.id = id
 
         # information for conversation
-        self.persona = data['persona_description']
-        self.profile = data['user_profile']
-        self.target_category = data['target_category']
-        self.target_budget = data['target_price']
+        self.user_profile = data['user_profile']
+        self.user_personality = data['big_five_personality']
+        self.decision_making_style = data['decision_making_style']
+        self.target_needs = data['review']
 
         # GT for the recommendation task
         self.pos_ids = data['target']

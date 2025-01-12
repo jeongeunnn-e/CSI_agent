@@ -1,5 +1,5 @@
 import os
-import random
+import save
 import logging
 from typing import List, Tuple
 from core.helpers import DialogSession
@@ -22,7 +22,7 @@ class Recommender(DialogModel):
 		super().__init__()
 		
 		self.mode = 'preference elicitation' # or 'persuasion'
-		self.da_prompts_mapping = PersuasionAct
+		self.da_prompts_mapping = UnifiedAct
 		self.dialog_acts = list(self.da_prompts_mapping.keys())
 			
 		self.backbone_model = OpenAIChatModel('gpt-4o-mini')
@@ -48,23 +48,25 @@ class Recommender(DialogModel):
 	def get_utterance(self, state:DialogSession, action) -> str:
 		
 		if action.lower() in [ 'contextual probing', 'preference narrowing']:
-			next_utt, self.preference = chat_based_question_generation(self.backbone_model, state, self.inference_args)
+			next_utt = chat_based_question_generation(self.backbone_model, state, self.inference_args)
 			return None, next_utt
 		
 		if action.lower() in ['recommendation']:
-			self.preference = chat_based_preference_elicitation(self.backbone_model, state, self.inference_args)
-			self.recommendation = self.retriever.retrieve(self.preference )
-			print(Back.LIGHTBLACK_EX +"[INFO] Item retrieved: " + self.recommendation.name +  Style.RESET_ALL + "\n")
-			print(self.recommendation.id)
-			next_utt = chat_based_recommendation(self.backbone_model, state, self.inference_args, self.recommendation, self.preference)
-			return self.recommendation.id, next_utt
+			top_k_items_id = self._get_recommendation(state)
+			next_utt = chat_based_recommendation(self.backbone_model, state, self.inference_args, self.recommendation, self.search_qeury)
+			return top_k_items_id, next_utt
 
 		if self.recommendation is None:
-			self.recommendation = self.retriever.retrieve(self.preference )
-			print(Back.LIGHTBLACK_EX +"[INFO] Item retrieved: " + self.recommendation.name +  Style.RESET_ALL + "\n")
-			print(self.recommendation.id)
-		next_utt = chat_based_persuasion(self.backbone_model, state, self.inference_args, self.recommendation, self.preference, self.da_prompts_mapping[action])
-		return self.recommendation.id, next_utt
+			top_k_items_id = self._get_recommendation(state)
+		next_utt = chat_based_persuasion(self.backbone_model, state, self.inference_args, self.recommendation, self.search_qeury, self.da_prompts_mapping[action])
+		return top_k_items_id, next_utt
+
+	def _get_recommendation(self, state: DialogSession):
+		self.search_qeury = chat_based_query_generation(self.backbone_model, state, self.inference_args)
+		save.write("query", self.search_qeury)
+		self.recommendation, top_k_items_id = self.retriever.retrieve(self.search_qeury)
+		save.write("recommendation", str(self.recommendation.name))
+		return top_k_items_id
 
 	def __process_chat_exp(self, exp: DialogSession, max_hist_num_turns: int = -1):
 		if not exp:
@@ -102,14 +104,10 @@ class Seeker(DialogModel):
 
 	def get_initial_utterance(self):
 		init_utt = f"Hi, I'm looking for {self.item_request}."
-		print(Fore.MAGENTA + "Seeker:" + Style.RESET_ALL + " " + init_utt + "\n")
+		save.write("usr", init_utt)
 		return init_utt
 		
 	def get_utterance(self, state:DialogSession, action=None) -> str:
 		user_resp = chat_based_seeker(self.backbone_model, state, self.user_data)
 		return user_resp
 	
-	def check_acceptance(self, recommendation_id):
-		if recommendation_id in self.user_data.pos_ids:
-			return True
-		return False

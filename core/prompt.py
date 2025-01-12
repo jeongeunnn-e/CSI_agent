@@ -1,5 +1,28 @@
 
 
+chat_system_recommender = """ 
+
+You are in a shopping assistant that helps a user search for suitable products.
+You will be given a dialogue context, and you must generate a response to identify user needs and recommend a product.
+
+You must follow the instructions below during chat.
+    1. You must answer the question accurately based on the given item information if available.
+	2. NEVER add any information that is not provided.
+    3. Understand the user's need and generate response that spark user's interest.
+    4.	Keep your responses concise, engaging, and easy to understand.
+"""
+
+chat_assistant_recommender = """
+
+{action_prompt}
+
+Here is the dialogue context:
+{dialogue_context}
+
+"""
+
+
+
 chat_system_seeker = """ 
 
 You are in a conversation with a shopping assistant, hoping that they can help you search for suitable products.
@@ -136,6 +159,29 @@ Here is the conversation history:
 Question :
 """
 
+chat_system_query_generation = """
+
+You are a query generation assistant. 
+Based on conversation, you need to generate a natural language query statement (Query) to retrieve the target product. 
+
+In order to generate a reasonable query, you must follow the following rules:  
+    1. The generated query should be concise, composed of keywords, and separated by spaces. 
+    2. The generated query should cover all of the user’s purchasing requirements. 
+    3. Do not output any explanations or inference information, and do not use unnecessary punctuation such as quotation marks.
+
+"""
+
+chat_assistant_query_generation = """ 
+
+Your task is to generate a natural language query statement (Query) to retrieve the target product based on the provided conversation history.
+
+Conversation history:
+{dial}
+
+Search query: 
+"""
+
+
 chat_system_preference_elicitation = """
 
 You are a preference elicitation assistant. Based on the conversation, your task is to generate a concise summary that captures the user’s preferences and requirements.
@@ -208,6 +254,17 @@ ElicitationAct = {
     "Attribute Inquiry": "Asks about the Seeker’s desired attributes or features in the recommendation.",
     "Recommend": "The Recommender suggests an item based on the Seeker’s preferences or expectations.",
 }
+
+UnifiedAct = {
+    "Logical Appeal": "Use reasoning and evidence to convince the Seeker of the recommendation’s suitability.",
+	"Emotion Appeal": "Elicit specific emotions, such as excitement, happiness, or relief, to influence the Seeker's decision.",
+    "Framing": "Present the recommendation in a way that highlights its benefits or advantages.",
+    "Evidence-based": "Mention customer ratings or industry certtifications to support the recommendation.",
+    "Social Proof": "Leverage the behavior or endorsement of others to validate the recommendation.",
+    "Contextual Probing": "Asks about the Seeker’s specific preferences or expectations related to the recommendation task.",
+    "Preference Narrowing": "Asks about the Seeker’s desired attributes or features in the recommendation.",
+}
+
 
 Act = { 'Persuasion': PersuasionAct, 'Elicitation': ElicitationAct }
 

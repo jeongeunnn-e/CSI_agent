@@ -41,6 +41,7 @@ class Item(object):
             return str(data)
         
 class Retriever(object):
+
     def __init__(self):
         self.product_category = "clothing"
         self._load_item_database()
@@ -48,25 +49,24 @@ class Retriever(object):
         self.backbone_model = OpenAIChatModel('gpt-4o-mini')
 
     def retrieve(self, query):
-        searched_category = self._chat_base_category_search(query)
+        category_dict = self._chat_base_category_search(query)
         query_emb = self.model.encode(query)
-        retrieve_item_ids = self._find_top_k_similar(searched_category, query_emb)
-        print(retrieve_item_ids)
+        retrieve_item_ids = self._find_top_k_similar(category_dict, query_emb)
         retrieve_item_id = retrieve_item_ids[0]
-        return Item(retrieve_item_id, self.item_db[self.id2asin[retrieve_item_id]])
+        print("Retrieved item id:", retrieve_item_ids)
+        return Item(retrieve_item_id, self.item_db[retrieve_item_id]), retrieve_item_ids
     
-    def _find_top_k_similar(self, searched_category, query_embedding, k=5):
-        
-        specific_keys = self.category_dict[searched_category]
-        new_dict = {key: self.emb[key] for key in specific_keys if key in self.emb}
+    def _find_top_k_similar(self, category_dict, query_embedding, k=5):
         
         similarities = [
-            (key, 1 - cosine(query_embedding, new_dict[key]))
-            for key in new_dict
+            (key, 1 - cosine(query_embedding, category_dict[key]))
+            for key in category_dict
         ]
         
         similarities = sorted(similarities, key=lambda x: x[1], reverse=True)
-        return [key for key, _ in similarities[:k]]
+        top_k_ids = [key for key, _ in similarities[:k]]
+        top_k_asins = [ self.id2asin[id] for id in top_k_ids ]
+        return top_k_asins
     
     def _chat_base_category_search(self, query):
 
@@ -77,12 +77,21 @@ class Retriever(object):
 
         response = self.backbone_model.chat_generate(message)
         response = response[0]['generated_text']
-        try:
-            response = response.split("Selected category: ")[1]
-        except:
-            print(response)
+
         response = response.replace("'","").replace("*", "")
-        return response
+
+        try:
+            searched_category = response.split("Selected category : ")[1]
+        except IndexError:
+            try:
+                searched_category = response.split("Selected category: ")[1]
+            except:
+                searched_category = "Clothing"
+
+        specific_keys = self.category_dict[searched_category]
+        category_dict = {key: self.emb[key] for key in specific_keys if key in self.emb}
+
+        return category_dict
         
     def _load_item_database(self):
         with open(f'data/{self.product_category}/meta_dict.json', 'r') as f:
