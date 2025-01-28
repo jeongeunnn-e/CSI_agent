@@ -1,15 +1,40 @@
 import json
 import pickle
+import world
+import numpy as np
 from scipy.spatial.distance import cosine
 from core.prompt import *
-from core.gen_models import OpenAIChatModel
+from core.prompt.category_tree import get_tree, get_init_paths
+from langchain_community.chat_models import ChatOpenAI
+from langchain.schema import HumanMessage, AIMessage, SystemMessage
+
 from sentence_transformers import SentenceTransformer
 
 class Item(object):
     def __init__(self, id, product_data:dict):
         self.id = id
         self.name = product_data['title']
+        self.short_description = self.__format_product_data_short_ver(product_data)
         self.description = self.__format_product_data(product_data)
+
+    def __format_product_data_short_ver(self, data):
+        try:
+            formatted_text = f"""
+            Product Name: {data.get('title', 'N/A')}
+            Description:
+            {data.get('description', ['N/A'])[0]}
+
+            Key Features:
+            """
+            for feature in data.get('features', []):
+                formatted_text += f"- {feature}\n"
+
+            formatted_text += "\nCategories:\n"
+            formatted_text += ", ".join(data.get('categories', ['N/A'])) + "\n"
+
+            return formatted_text
+        except Exception as e:
+            return str(data)
 
     def __format_product_data(self, data):
         try:
@@ -43,20 +68,71 @@ class Item(object):
 class Retriever(object):
 
     def __init__(self):
+
         self.product_category = "clothing"
         self._load_item_database()
-        self.model = SentenceTransformer("thenlper/gte-large")
-        self.backbone_model = OpenAIChatModel('gpt-4o-mini')
+        self.category_tree = get_tree()
+
+        self.model = SentenceTransformer('nvidia/NV-Embed-v2', trust_remote_code=True)
+        self.model.tokenizer.padding_side = "right"
+        self.backbone_model = ChatOpenAI(model='gpt-4o-mini')
+        
+        self.searched_category = None
+        self.searched_category_path = ['Clothing, Shoes & Jewelry']
+
 
     def retrieve(self, query):
-        category_dict = self._chat_base_category_search(query)
-        query_emb = self.model.encode(query)
+
+        searched_category = self._chat_base_category_search(query) if self.searched_category is None else self.searched_category
+        specific_keys = self.category_dict[searched_category]
+        category_dict = {key: self.emb[key] for key in specific_keys if key in self.emb}
+
+        task_name_to_instruct = {"example": "Given a query, retrieve product that matches the attributes.",}
+        query_prefix = "Instruct: "+task_name_to_instruct["example"]+"\nQuery: "
+        query_emb = self.model.encode(self._add_eos([query]), batch_size=1, prompt=query_prefix, normalize_embeddings=True)
+
         retrieve_item_ids = self._find_top_k_similar(category_dict, query_emb)
-        retrieve_item_id = retrieve_item_ids[0]
-        print("Retrieved item id:", retrieve_item_ids)
-        return Item(retrieve_item_id, self.item_db[retrieve_item_id]), retrieve_item_ids
+        retrieve_items = [ Item(retrieve_item_id, self.item_db[retrieve_item_id]) for retrieve_item_id in retrieve_item_ids ]
+        
+        return searched_category, retrieve_items
+
+
+    def _add_eos(self, input_examples):
+        input_examples = [input_example + self.model.tokenizer.eos_token for input_example in input_examples]
+        return input_examples
+
+
+    def _find_top_k_similar(self, category_dict, query_embedding, k=20):
+
+        ids = list(category_dict.keys())
+        embeddings = np.array([category_dict[key] for key in ids])
+        scores = (query_embedding @ embeddings.T).flatten()  
+        sorted_indices = np.argsort(scores)[::-1]
+        sorted_scores = scores[sorted_indices]
+        sorted_ids = [ids[idx] for idx in sorted_indices]
+        sorted_asins = [self.id2asin[id_] for id_ in sorted_ids]
+        
+        # print("\nRanks of GT ASINs:")
+        # for asin in world.gt_ids:
+        #     if asin in sorted_asins:
+        #         rank = sorted_asins.index(asin) + 1  # Ranks are 1-based
+        #         score = sorted_scores[sorted_asins.index(asin)]
+        #         print(f"ASIN {asin} - Rank: {rank}, Score: {score}")
+        #     else:
+        #         print(f"ASIN {asin} not found in the embedding dictionary.")
+            
+        top_k_indices = sorted_indices[:k]
+        
+        top_k_ids = [ids[idx] for idx in top_k_indices]
+        top_k_asins = [self.id2asin[id_] for id_ in top_k_ids]
+        
+        return top_k_asins
     
-    def _find_top_k_similar(self, category_dict, query_embedding, k=5):
+
+    def get_sub_categories(self, path):
+        return self.category_tree.search_children(path)
+
+    def __find_top_k_similar(self, category_dict, query_embedding, k=5):
         
         similarities = [
             (key, 1 - cosine(query_embedding, category_dict[key]))
@@ -67,37 +143,43 @@ class Retriever(object):
         top_k_ids = [key for key, _ in similarities[:k]]
         top_k_asins = [ self.id2asin[id] for id in top_k_ids ]
         return top_k_asins
-    
+
     def _chat_base_category_search(self, query):
 
-        message = [
-            {'role':'system', 'content': chat_system_category_search},
-            {'role': 'user', 'content': chat_assistant_category_search.format(search_query=query, category_list=str(self.category_list))}
+        # if len(self.searched_category_path) < 3:
+        #     category_list = self.category_tree.get_init_path
+        # else:
+        category_list = self.category_list
+
+        messages = [
+            SystemMessage(content=chat_system_category_search),
+            HumanMessage(content=chat_assistant_category_search.format(search_query=query, category_list=str(category_list)))
         ]
 
-        response = self.backbone_model.chat_generate(message)
-        response = response[0]['generated_text']
+        output = self.backbone_model.generate([messages])
+        response = output.generations[0][0].text
+        response = response.replace("'", "").replace("*", "")
+        print(response)
+        searched_category = "Clothing" 
+        for prefix in ["Selected category : ", "Selected category: "]:
+            if prefix in response:
+                searched_category = response.split(prefix, 1)[1]
+                break
 
-        response = response.replace("'","").replace("*", "")
+        if searched_category not in self.category_list:
+            searched_category = "Clothing"
 
-        try:
-            searched_category = response.split("Selected category : ")[1]
-        except IndexError:
-            try:
-                searched_category = response.split("Selected category: ")[1]
-            except:
-                searched_category = "Clothing"
+        print(f"[GT] Target category: {str(world.gt_category)}")
+        print(f"[INFO] Selected category: {searched_category}")
 
-        specific_keys = self.category_dict[searched_category]
-        category_dict = {key: self.emb[key] for key in specific_keys if key in self.emb}
-
-        return category_dict
+        return searched_category
         
+
     def _load_item_database(self):
         with open(f'data/{self.product_category}/meta_dict.json', 'r') as f:
             self.item_db = json.load(f)
         
-        with open(f'data/{self.product_category}/item_embedding_gte.pkl', 'rb') as file:
+        with open(f'data/{self.product_category}/item_embedding_nv_v2.pkl', 'rb') as file:
             self.emb = pickle.load(file)
 
         with open(f'data/{self.product_category}/asin2id.json', 'r') as f:
@@ -107,3 +189,4 @@ class Retriever(object):
         with open(f'data/{self.product_category}/category_dict.json', 'r') as f:
             self.category_dict = json.load(f)
         self.category_list = list(self.category_dict.keys())
+        

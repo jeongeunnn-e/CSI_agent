@@ -18,12 +18,11 @@ Your ultimate goal is to assist users in navigating the product catalog efficien
 
 
 chat_assistant_category_search = """
-
 Match the provided search query to the most relevant product category from the available list. 
 
 Search query: {search_query}
 
 Available categories: {category_list}
 
-Selected category:
+Selected category: [selected_category]
 """

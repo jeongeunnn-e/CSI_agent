@@ -13,8 +13,4 @@ You are a Persuader tasked with suggesting the best item for a user who is looki
 Based on the following item details, respond with one succinct, persuasive sentence to highlight the item’s appeal and spark the user’s interest.
 {action}
 
-[Item Information]:
-{item_info}
-
-
 """

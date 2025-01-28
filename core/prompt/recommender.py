@@ -8,7 +8,7 @@ You must follow the instructions below during chat.
     1. You must answer the question accurately based on the given item information if available.
 	2. NEVER add any information that is not provided.
     3. Understand the user's need and generate response that spark user's interest.
-    4.	Keep your responses concise, engaging, and easy to understand.
+    4. Keep your responses concise, engaging, and easy to understand.
 """
 
 
