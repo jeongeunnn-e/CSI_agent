@@ -48,7 +48,7 @@ Thoughts :
 
 1. Thought:
    - Reflect on the current situation.
-   - Determines whether to keep probing for details or transition to persuasion.
+   - Determines whether to asking questions for details or transition to persuasion.
 
 2. Preference:
    - Summarize the Seeker’s evolving preferences based on the current dialogue.
@@ -63,6 +63,9 @@ Thoughts :
 
 5. Buget Range:
     - Extract the budget range from the Seeker's conversation.
+
+6. Item ID:
+    - If the Seeker mentions specific item ID, extract it.
    
 
 Action: Based on the current category and user preferences, select only one of the most suitable action to enhance the recommendation process effectively:
@@ -70,20 +73,16 @@ Action: Based on the current category and user preferences, select only one of t
     (1) Category Narrowing: Ask focused questions about specific category paths to effectively narrow down the product search pool.
     (2) Preference Probing: Ask detailed and clarifying questions to gain a deeper understanding of preferences and align them with specific items.
     (3) Retrieve: Retrieve items based on the current category and user preferences, then suggest these items to the user.
-    (4) Logical Appeal : Use reasoning and evidence to convince the user of the recommendation’s suitability.
-    (5) Emotional Appeal : Evoke emotions (e.g., excitement or relief) to influence the user’s decision.
-    (6) Social Proof : Highlight the behavior or endorsements of others to validate the recommendation.
+    (4) Persuasion : Generate a persuasive response to convince the user to accept the recommendation.
 
-    
-    
+
 When to suggestion:
 - When both Category is narrowed and Preference detailed. 
 
 When to Use Persuade:
 - Transition to persuasion actions if user asks for explanation for specific item or user satisfied suggestion
-- Persuasion actions (Logical Appeal, Emotional Appeal, Framing, Evidence Based, Social Proof) take precedence over further inquiry unless the Seeker explicitly indicates unresolved questions or dissatisfaction.
 
----
+
 
 Output Format
 
@@ -93,9 +92,10 @@ Output Format
         "Preference": "[updated user preferences]",
         "Personality": "[inferred personality traits]",
         "Category Path": "[extracted category path]",
-        "Budget Range": "[minimum budget, maximum budget (-1 if not specified) ]"
+        "Budget Range": "[minimum budget, maximum budget (-1 if not specified) ]",
+        "Item ID": "[extracted item ID (None if not mentioned)]"
     }},
-    "Action": "[Choose ONE: 'Category Narrowing', 'Preference Probing', 'Retrieve', 'Logical Appeal', 'Emotional Appeal', 'Social Proof']"
+    "Action": "[Choose ONE: 'Category Narrowing', 'Preference Probing', 'Retrieve', 'Persuasion']"
 }}
 
 """

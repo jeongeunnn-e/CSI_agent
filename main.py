@@ -6,7 +6,8 @@ from tqdm import tqdm
 
 from load_data import load_dataset
 from core.players import *
-from core.retrieve import Retriever
+from core.players.tool import Tool
+from core.players.tools.retriever import Retriever
 from langchain.schema import HumanMessage, AIMessage, SystemMessage
 
 torch.cuda.init() 
@@ -15,7 +16,7 @@ torch.cuda.reset_peak_memory_stats(device=None)
 
 def main(cmd_args, dataset):
 
-	retriever = Retriever()
+	tool = Tool()
 
 	SR = 0
 	AT = 0
@@ -25,7 +26,7 @@ def main(cmd_args, dataset):
 		data = random.choice(dataset)
 
 		user = Seeker(data)
-		system = Recommender(retriever)
+		system = Recommender(tool)
 
 		conversation_history = [
 			HumanMessage(content=user.init_utt),
@@ -44,8 +45,8 @@ def main(cmd_args, dataset):
 			usr_utt = user.generate_utterance(conversation_history)
 			conversation_history.append(HumanMessage(content=usr_utt))
 			
-			print(f"System: {sys_utt}")
-			print(f"User: {usr_utt}")
+			print(f"\033[1;34mSystem: {sys_utt}\033[0m\n")
+			print(f"\033[1;32mUser: {usr_utt}\033[0m\n")
 
 			output['thoughts'].append(thought)
 			output['actions'].append(action)

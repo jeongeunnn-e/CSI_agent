@@ -63,19 +63,15 @@ class Retriever(object):
 
         self.product_category = "clothing"
         self._load_item_database()
-        self.category_tree = get_tree()
 
         self.model = SentenceTransformer('nvidia/NV-Embed-v2', trust_remote_code=True)
         self.model.tokenizer.padding_side = "right"
         self.backbone_model = ChatOpenAI(model='gpt-4o-mini')
-        
-        self.searched_category = None
-        self.searched_category_path = ['Clothing, Shoes & Jewelry']
 
 
-    def retrieve(self, query):
+    def retrieve(self, query, category_path):
 
-        searched_category = self._chat_base_category_search(query) if self.searched_category is None else self.searched_category
+        searched_category = category_path[-1] if len(category_path) > 0 else 'Clothing, Shoes & Jewelry'
         specific_keys = self.category_dict[searched_category]
         category_dict = {key: self.emb[key] for key in specific_keys if key in self.emb}
 
@@ -101,18 +97,7 @@ class Retriever(object):
         scores = (query_embedding @ embeddings.T).flatten()  
         sorted_indices = np.argsort(scores)[::-1]
         sorted_scores = scores[sorted_indices]
-        sorted_ids = [ids[idx] for idx in sorted_indices]
-        sorted_asins = [self.id2asin[id_] for id_ in sorted_ids]
-        
-        # print("\nRanks of GT ASINs:")
-        # for asin in world.gt_ids:
-        #     if asin in sorted_asins:
-        #         rank = sorted_asins.index(asin) + 1  # Ranks are 1-based
-        #         score = sorted_scores[sorted_asins.index(asin)]
-        #         print(f"ASIN {asin} - Rank: {rank}, Score: {score}")
-        #     else:
-        #         print(f"ASIN {asin} not found in the embedding dictionary.")
-            
+        sorted_ids = [ids[idx] for idx in sorted_indices]        
         top_k_indices = sorted_indices[:k]
         
         top_k_ids = [ids[idx] for idx in top_k_indices]
@@ -121,8 +106,8 @@ class Retriever(object):
         return top_k_asins
     
 
-    def get_sub_categories(self, path):
-        return self.category_tree.search_children(path)
+    def retrieve_by_id(self, asin):
+        return Item(asin, self.item_db[asin])
 
 
     def _chat_base_category_search(self, query):

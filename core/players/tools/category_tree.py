@@ -43,7 +43,7 @@ class SampleTree:
             else:
                 return None
         return current.items
-    
+
     def get_init_detph_3_paths(self):
         routes = []
 
@@ -57,8 +57,81 @@ class SampleTree:
 
         dfs(self.root, [], 0)
         return routes
+    
+
+    def get_depth_3_paths_from(self, start_node):
+
+        routes = []
+
+        def find_node(node, target_name):
+            if node.idx == target_name:
+                return node
+            for child in node.children.values():
+                found = find_node(child, target_name)
+                if found:
+                    return found
+            return None
+
+        def dfs(node, path, depth):
+            if depth == 3:
+                routes.append(" > ".join(path[1:]))
+                return
+            for child_name, child_node in node.children.items():
+                dfs(child_node, path + [child_name], depth + 1)
+
+        start_node_ref = find_node(self.root, start_node)
+        
+        if start_node_ref:
+            dfs(start_node_ref, [start_node], 1)
+        else:
+            print(f"Node '{start_node}' not found in the tree.")
+
+        return routes  
+            
+
+    def check_existing_path(self, path):
+
+        def find_start_node(node, level):
+            if level in node.children:
+                return node.children[level]
+            for child in node.children.values():
+                found = find_start_node(child, level)
+                if found:
+                    return found
+            return None
+
+        start_node = find_start_node(self.root, path[0])
+        
+        if not start_node:
+            return []
+
+        current = start_node
+        valid_path = [path[0]]
+
+        for level in path[1:]:
+            if level in current.children:
+                valid_path.append(level)
+                current = current.children[level]
+            else:
+                break 
+
+        return valid_path  
 
 
+    def get_paths_to_node(self, node_name):
+        paths = []
+
+        def dfs(node, path):
+            if node.idx == node_name:
+                paths.append(path[:])  # Store a copy of the path
+
+            for child_name, child_node in node.children.items():
+                dfs(child_node, path + [child_name])
+
+        dfs(self.root, [])
+        return paths
+
+     
 def get_tree():
 
     import os
