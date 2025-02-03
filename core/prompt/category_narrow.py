@@ -37,3 +37,12 @@ Instructions:
 Output Format:
 Question: Are you interested in [Relevant Category 1], [Relevant Category 2], or [Relevant Category 3]?
 """
+
+singleq_category_narrow = """
+
+Which category are you looking for?
+Select one of the following options:
+
+{paths_options}
+
+"""

@@ -43,6 +43,20 @@ class SampleTree:
             else:
                 return None
         return current.items
+    
+    def get_init_detph_3_paths(self):
+        routes = []
+
+        def dfs(node, path, depth):
+            if depth == 3:
+                routes.append(" > ".join(path[1:]))
+                return
+
+            for child_name, child_node in node.children.items():
+                dfs(child_node, path + [child_name], depth + 1)
+
+        dfs(self.root, [], 0)
+        return routes
 
 
 def get_tree():
@@ -54,7 +68,7 @@ def get_tree():
 
 
     domain = 'Clothing_Shoes_and_Jewelry'
-    data_dir = '/work/convagent/PDA_CRS/data/clothing/'
+    data_dir = '/work/convagent/CSA/data/clothing'
 
     meta_dict = load_json(os.path.join(data_dir, 'meta_dict.json'))
     item_keys = list(meta_dict.keys())
@@ -68,23 +82,4 @@ def get_tree():
 
     return tree
 
-
-def get_init_paths(node, path, depth, target_depth=3):
-
-    if depth > target_depth:
-        return []
-
-    paths = []
-    if depth == target_depth:
-        paths.append(path)
-
-    for child_idx, child_node in node.children.items():
-        paths.extend(get_init_paths(child_node, path + [child_idx], depth + 1, target_depth))
-
-    output_path = []
-    for path in paths:
-        path = path[1:]
-        output_path.append(" > ".join(map(str, path)))
-
-    return output_path
 

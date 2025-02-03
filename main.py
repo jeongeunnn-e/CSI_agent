@@ -1,10 +1,12 @@
 import torch
 import json
+import random
 import argparse
 from tqdm import tqdm
 
 from load_data import load_dataset
 from core.players import *
+from core.retrieve import Retriever
 from langchain.schema import HumanMessage, AIMessage, SystemMessage
 
 torch.cuda.init() 
@@ -12,17 +14,30 @@ print(torch.cuda.is_available())
 torch.cuda.reset_peak_memory_stats(device=None)
 
 def main(cmd_args, dataset):
+
+	retriever = Retriever()
+
+	SR = 0
+	AT = 0
 	
-	for data in dataset[:3]:
+	for i in tqdm(range(4)):
+
+		data = random.choice(dataset)
+
 		user = Seeker(data)
-		system = Recommender()
+		system = Recommender(retriever)
 
 		conversation_history = [
 			HumanMessage(content=user.init_utt),
 		]
+
+		output = {
+			'thoughts': [],
+			'actions': []
+		}
 		
 		for i in range(cmd_args.max_turn):
-			_, action = system.plan(conversation_history)
+			thought, action = system.plan(conversation_history)
 			sys_utt = system.generate_utterance(action, conversation_history)
 			conversation_history.append(AIMessage(content=sys_utt))
 			
@@ -31,21 +46,30 @@ def main(cmd_args, dataset):
 			
 			print(f"System: {sys_utt}")
 			print(f"User: {usr_utt}")
+
+			output['thoughts'].append(thought)
+			output['actions'].append(action)
+
+			if "#STOP#" in usr_utt:
+				print("Conversation is stopped.")
+				SR += 1
+				break
             
-		_save_conversation_history(conversation_history)
+		_save_conversation_history(output, conversation_history)
 
 
-def _save_conversation_history(conversation_history):
-    serializable_history = [
-        {
-            "role": "system" if isinstance(msg, SystemMessage) else "user" if isinstance(msg, HumanMessage) else "assistant",
-            "content": msg.content
-        }
-        for msg in conversation_history
-    ]
-
-    with open(f'example/conversation_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S.txt")}.json', "w") as file:
-        json.dump(serializable_history, file, indent=4)
+def _save_conversation_history(output, conversation_history):
+	serializable_history = [
+		{
+			"role": "system" if isinstance(msg, SystemMessage) else "user" if isinstance(msg, HumanMessage) else "assistant",
+			"content": msg.content
+		}
+		for msg in conversation_history
+	]
+	
+	output['conversation'] = serializable_history
+	with open(f'example/conversation_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S.txt")}.json', "w") as file:
+		json.dump(output, file, indent=4)
 		
 
 if __name__ == "__main__":

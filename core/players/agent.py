@@ -2,16 +2,40 @@ import json
 
 from core.prompt import *
 from core.retrieve import Retriever
-
+from core.players.tools.tool import *
 from langchain_community.chat_models import ChatOpenAI
 from langchain.schema import HumanMessage, AIMessage, SystemMessage
 
 
-class Recommender:
+class Memory:
     def __init__(self):
+        self.preference = None
+        self.personality = None
+        self.category = None
+        self.category_path = None
+
+    def update(self, thought):
+        self.preference = thought['Preference']
+        self.personality = thought['Personality']
+        self.budget_range = thought['Budget Range']
+        return self
+    
+    def _save_format(self):
+        return {
+            'Preference': self.preference,
+            'Personality': self.personality,
+            'Category': self.category,
+            'Category Path': self.category_path
+        }
+    
+
+class Recommender:
+    def __init__(self, retriever):
         self.planner = ChatOpenAI(model='gpt-4o-mini')
         self.model = ChatOpenAI(model='gpt-4o-mini')
-        self.retriever = Retriever()
+        self.retriever = retriever
+        self.memory = Memory()
+
 
     def plan(self, conversation_history):
 
@@ -23,19 +47,24 @@ class Recommender:
 
         output = self.planner.generate([messages])
         response = output.generations[0][0].text
-        print(response)
         response = response.strip("'```json").strip("```'")
+        response = response.replace("{{","{").replace("}}","}")
+        print(response, "\n")
         response = json.loads(response)
 
         thought = response['Thoughts']
-        action = response['Action'][0]
-        self.preference = thought['Preference']
+        action = response['Action']
 
-        return thought, action
+        self.memory.update(thought)
+
+        return thought, 'Category Narrowing'
     
     def generate_utterance(self, action, conversation_history):
-
-        if action in ['Category Narrowing', 'Preference Probing']:
+        
+        if action in ['Category Narrowing']:
+            utt = singleq_category_narrow.format(paths_options=category_search(self.memory.category_path))
+            return utt
+        elif action in ['Preference Probing']:
             messages = [
                 SystemMessage(content=chat_system_question_generation),
                 *conversation_history,
@@ -46,7 +75,7 @@ class Recommender:
             return response
         
         elif action in ['Retrieve']:
-            _, items = self.retriever.retrieve(self.preference)
+            _, items = self.retriever.retrieve(self.memory.preference)
             items_info = [ item.short_description for item in items ]
             
             utt = "Here are some items that you might like: \n"
@@ -67,7 +96,11 @@ class Recommender:
             return response
 
 
+    def update_memory(self, thought):
 
-
+        self.memory['Preference'] = thought['Preference']
+        self.memory['Personality'] = thought['Personality']
+        
+        return self.memory
 
     

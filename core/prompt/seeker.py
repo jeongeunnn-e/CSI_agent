@@ -13,7 +13,6 @@ Here is your profile:
 - target_needs: {target_needs}
 - target_category: {target_category}
 - purchase_reasons: {purchase_reasons}
-- target_ids: {target_ids}
 - budget_range: {budget_range}
 - Decision-Making Style: {decision_making_style}
 
@@ -21,11 +20,21 @@ Here is your profile:
 Important
     - Only provide direct answer for the question accurately.
     - Provide category information only when assistant ask for it.
-
+    - Never provide any information that is not asked by the assistant.
 """
 
 user_prompt = """
 
 Generate next utterance based on your profile.
+If you are provided recommendations and there is a product that aligns with your target needs, include its ID in your response.
+If you accept the recommendation, stop the conversation by adding "##STOP##" at the end of your response.
+If you are provided with category path options, select one of options.
+
+"""
+
+user_inital_prompt = """
+
+Generate your first utterance based on your profile.
+Include at least the category and budget range in your response.
 
 """

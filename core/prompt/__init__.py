@@ -1,5 +1,5 @@
 # planning
-from core.prompt.react import *
+from core.prompt.planning import *
 from core.prompt.action import *
 
 # user

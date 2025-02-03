@@ -1,10 +1,9 @@
 import json
 import pickle
-import world
 import numpy as np
 from scipy.spatial.distance import cosine
 from core.prompt import *
-from core.prompt.category_tree import get_tree, get_init_paths
+from core.players.tools.category_tree import get_tree
 from langchain_community.chat_models import ChatOpenAI
 from langchain.schema import HumanMessage, AIMessage, SystemMessage
 
@@ -20,18 +19,11 @@ class Item(object):
     def __format_product_data_short_ver(self, data):
         try:
             formatted_text = f"""
-            Product Name: {data.get('title', 'N/A')}
+            Product Name: {data.get('title', 'N/A')} 
+            Item ID: {self.id}
             Description:
             {data.get('description', ['N/A'])[0]}
-
-            Key Features:
             """
-            for feature in data.get('features', []):
-                formatted_text += f"- {feature}\n"
-
-            formatted_text += "\nCategories:\n"
-            formatted_text += ", ".join(data.get('categories', ['N/A'])) + "\n"
-
             return formatted_text
         except Exception as e:
             return str(data)
@@ -102,7 +94,7 @@ class Retriever(object):
         return input_examples
 
 
-    def _find_top_k_similar(self, category_dict, query_embedding, k=20):
+    def _find_top_k_similar(self, category_dict, query_embedding, k=5):
 
         ids = list(category_dict.keys())
         embeddings = np.array([category_dict[key] for key in ids])
@@ -132,17 +124,6 @@ class Retriever(object):
     def get_sub_categories(self, path):
         return self.category_tree.search_children(path)
 
-    def __find_top_k_similar(self, category_dict, query_embedding, k=5):
-        
-        similarities = [
-            (key, 1 - cosine(query_embedding, category_dict[key]))
-            for key in category_dict
-        ]
-        
-        similarities = sorted(similarities, key=lambda x: x[1], reverse=True)
-        top_k_ids = [key for key, _ in similarities[:k]]
-        top_k_asins = [ self.id2asin[id] for id in top_k_ids ]
-        return top_k_asins
 
     def _chat_base_category_search(self, query):
 
@@ -169,7 +150,6 @@ class Retriever(object):
         if searched_category not in self.category_list:
             searched_category = "Clothing"
 
-        print(f"[GT] Target category: {str(world.gt_category)}")
         print(f"[INFO] Selected category: {searched_category}")
 
         return searched_category
