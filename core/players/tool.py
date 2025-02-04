@@ -20,7 +20,7 @@ class Tool:
         if len(thought_category) == 0 or thought_category == "None":
             return current_path
 
-        thought_category = thought_category.split(" > ")
+        # thought_category = thought_category.split(" > ")
         current_path.extend(thought_category)
         new_path = self.category_tree.check_existing_path(current_path)
 

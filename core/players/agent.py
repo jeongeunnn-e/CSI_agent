@@ -33,35 +33,35 @@ class Memory:
     
 
 class Recommender:
+
     def __init__(self, tool, model_name):
         self.model = ChatOpenAI(model=model_name)
         self.tool = tool
         self.memory = Memory()
         self.accumulated_history = []
 
-
     def plan(self, conversation_history):
 
         messages = [
             SystemMessage(content=react_system),
-            *self.accumulated_history,
-            conversation_history[-1],
-            HumanMessage(content=react_user.format(reconstructed_profile=self.memory._string_format()))
+            *conversation_history,
+            HumanMessage(content=react_user.format(identified_profile=self.memory._string_format()))
         ]
 
         output = self.model.generate([messages])
         response = output.generations[0][0].text
         response = response.strip("'```json").strip("```'")
-        response = response.replace("{{","{").replace("}}","}")
-        print(response, "\n")
+        response = response.replace("{{","{").replace("}}","}").replace("None", "null")
+        print(response)
         response = json.loads(response)
-
+        
         thought = response['Thoughts']
+        user_profile = response['User Profile']
         action = response['Action']
 
-        thought['Category Path'] = self.tool.category_update(thought['Category Path'], self.memory.category_path)
-        print("Updated category path: ", thought['Category Path'])
-        self.memory.update(thought)
+        user_profile['Category Path'] = self.tool.category_update(user_profile['Category Path'], self.memory.category_path)
+        print("Updated category path: ", user_profile['Category Path'])
+        self.memory.update(user_profile)
 
         if 'Item ID' in thought and thought['Item ID'] != 'None':
             item = thought['Item ID'].split(", ")[0].split("; ")[0]
