@@ -11,7 +11,7 @@ class Memory:
         self.preference = None
         self.personality = None
         self.category = None
-        self.category_path = []
+        self.category_path = [ 'Clothing, Shoes & Jewelry']
 
     def update(self, thought):
         self.preference = thought['Preference']
@@ -37,13 +37,15 @@ class Recommender:
         self.model = ChatOpenAI(model=model_name)
         self.tool = tool
         self.memory = Memory()
+        self.accumulated_history = []
 
 
     def plan(self, conversation_history):
 
         messages = [
             SystemMessage(content=react_system),
-            *conversation_history,
+            *self.accumulated_history,
+            conversation_history[-1],
             HumanMessage(content=react_user.format(reconstructed_profile=self.memory._string_format()))
         ]
 
@@ -61,8 +63,9 @@ class Recommender:
         print("Updated category path: ", thought['Category Path'])
         self.memory.update(thought)
 
-        if thought['Item ID'] != 'None':
-            self.recommendation = self.tool.retriever.retrieve_by_id(thought['Item ID'])
+        if 'Item ID' in thought and thought['Item ID'] != 'None':
+            item = thought['Item ID'].split(", ")[0].split("; ")[0]
+            self.recommendation = self.tool.retriever.retrieve_by_id(item)
 
         return thought, action
     
@@ -80,10 +83,10 @@ class Recommender:
             response = output.generations[0][0].text
             for prefix in ["Selected category : ", "Selected category: "]:
                 if prefix in response:
-                    response = response.split(prefix, 1)[1]
+                    response = response.split(prefix)[1]
                 break
 
-            utt = f"Are you looking for {response}?"
+            utt = f"Are you looking for following category : {response}?"
             return utt
         
         elif action in ['Preference Probing']:

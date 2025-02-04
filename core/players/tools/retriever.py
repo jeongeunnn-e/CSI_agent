@@ -73,7 +73,7 @@ class Retriever(object):
 
         searched_category = category_path[-1] if len(category_path) > 0 else 'Clothing, Shoes & Jewelry'
 
-        specific_keys = category_tree.search_id(category_path)
+        specific_keys = category_tree.get_ids_by_path(category_path)
         category_dict = {key: self.emb[key] for key in specific_keys if key in self.emb}
 
         # task_name_to_instruct = {"example": "Given a query, retrieve product that matches the attributes.",}

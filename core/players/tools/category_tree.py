@@ -131,7 +131,60 @@ class SampleTree:
         dfs(self.root, [])
         return paths
 
+    def get_depth_3_paths_from_path(self, start_path):
+
+        routes = []
+
+        def find_node_by_path(node, path):
+            """ Traverse the tree along the given path and return the target node. """
+            current = node
+            for level in path:
+                if level in current.children:
+                    current = current.children[level]
+                else:
+                    return None  # Path does not exist
+            return current
+
+        def dfs(node, path, depth):
+            """ Perform DFS up to depth 2 from the given node, including leaf nodes. """
+            if depth == 2:  # Stop at depth 2 or if it's a leaf
+                routes.append(" > ".join(path[-2:]))  # Add last 2 elements
+                return
+            if  not node.children:
+                routes.append(path[-1])
+                return
+            for child_name, child_node in node.children.items():
+                dfs(child_node, path + [child_name], depth + 1)
+
+        # Find the last node in the given path
+        start_node_ref = find_node_by_path(self.root, start_path)
+
+        if start_node_ref:
+            dfs(start_node_ref, start_path, 0)  # Start DFS from the last node in path
+        else:
+            print(f"Path '{' > '.join(start_path)}' not found in the tree.")
+
+        return routes
+    
+    def get_ids_by_path(self, category_path):
+        
+        def find_node_by_path(node, path):
+            """ Traverse the tree along the given path and return the target node. """
+            current = node
+            for level in path:
+                if level in current.children:
+                    current = current.children[level]
+                else:
+                    return None  # Path does not exist
+            return current
+
+        # Find the target node for the given path
+        target_node = find_node_by_path(self.root, category_path)
+
+        # Return item IDs if the node exists, else return an empty list
+        return target_node.items if target_node else []
      
+
 def get_tree():
 
     import os
