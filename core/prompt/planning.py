@@ -91,7 +91,7 @@ Output Format
         "Thought": "[reflection on the situation]",
         "Preference": "[updated user preferences]",
         "Personality": "[inferred personality traits]",
-        "Category Path": "[extracted category path]",
+        "Category Path": "[extracted category path (empty if not mentioned)]",
         "Budget Range": "[minimum budget, maximum budget (-1 if not specified) ]",
         "Item ID": "[extracted item ID (None if not mentioned)]"
     }},

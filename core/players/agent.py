@@ -33,8 +33,8 @@ class Memory:
     
 
 class Recommender:
-    def __init__(self, tool):
-        self.model = ChatOpenAI(model='gpt-4o-mini')
+    def __init__(self, tool, model_name):
+        self.model = ChatOpenAI(model=model_name)
         self.tool = tool
         self.memory = Memory()
 
@@ -97,7 +97,7 @@ class Recommender:
             return response
         
         elif action in ['Retrieve']:
-            _, items = self.tool.retriever.retrieve(self.memory.preference, self.memory.category_path)
+            _, items = self.tool.retriever.retrieve(self.memory.preference, self.memory.category_path, self.tool.category_tree)
             self.recommendation = items[0]
             items_info = [ item.short_description for item in items ]
             

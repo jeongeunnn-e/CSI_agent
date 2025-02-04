@@ -3,8 +3,8 @@ from langchain_community.chat_models import ChatOpenAI
 from langchain.schema import HumanMessage, AIMessage, SystemMessage
 
 class Seeker:
-    def __init__(self, user_data):
-        self.model = ChatOpenAI(model='gpt-3.5-turbo')
+    def __init__(self, user_data, model_name):
+        self.model = ChatOpenAI(model=model_name)
         
         self.system_msg = self.__build_system_msg(user_data)
         self.init_utt = self._init_utt(user_data)
@@ -20,7 +20,8 @@ class Seeker:
                 target_category=data.target_category,
                 purchase_reasons=data.purchase_reasons,
                 budget_range=data.budget_range,
-                decision_making_style=data.decision_making_style
+                decision_making_style=data.decision_making_style,
+                dialogue_openness=data.dialogue_openness   
             )
         )
 

@@ -64,21 +64,23 @@ class Retriever(object):
         self.product_category = "clothing"
         self._load_item_database()
 
-        self.model = SentenceTransformer('nvidia/NV-Embed-v2', trust_remote_code=True)
+        self.model = SentenceTransformer(f'sentence-transformers/sentence-t5-base')
         self.model.tokenizer.padding_side = "right"
         self.backbone_model = ChatOpenAI(model='gpt-4o-mini')
 
 
-    def retrieve(self, query, category_path):
+    def retrieve(self, query, category_path, category_tree):
 
         searched_category = category_path[-1] if len(category_path) > 0 else 'Clothing, Shoes & Jewelry'
-        specific_keys = self.category_dict[searched_category]
+
+        specific_keys = category_tree.search_id(category_path)
         category_dict = {key: self.emb[key] for key in specific_keys if key in self.emb}
 
-        task_name_to_instruct = {"example": "Given a query, retrieve product that matches the attributes.",}
-        query_prefix = "Instruct: "+task_name_to_instruct["example"]+"\nQuery: "
-        query_emb = self.model.encode(self._add_eos([query]), batch_size=1, prompt=query_prefix, normalize_embeddings=True)
+        # task_name_to_instruct = {"example": "Given a query, retrieve product that matches the attributes.",}
+        # query_prefix = "Instruct: "+task_name_to_instruct["example"]+"\nQuery: "
+        # query_emb = self.model.encode(self._add_eos([query]), batch_size=1, prompt=query_prefix, normalize_embeddings=True)
 
+        query_emb = self.model.encode(query)
         retrieve_item_ids = self._find_top_k_similar(category_dict, query_emb)
         retrieve_items = [ Item(retrieve_item_id, self.item_db[retrieve_item_id]) for retrieve_item_id in retrieve_item_ids ]
         
@@ -99,59 +101,22 @@ class Retriever(object):
         sorted_scores = scores[sorted_indices]
         sorted_ids = [ids[idx] for idx in sorted_indices]        
         top_k_indices = sorted_indices[:k]
-        
         top_k_ids = [ids[idx] for idx in top_k_indices]
-        top_k_asins = [self.id2asin[id_] for id_ in top_k_ids]
         
-        return top_k_asins
+        return top_k_ids
     
 
     def retrieve_by_id(self, asin):
         return Item(asin, self.item_db[asin])
-
-
-    def _chat_base_category_search(self, query):
-
-        # if len(self.searched_category_path) < 3:
-        #     category_list = self.category_tree.get_init_path
-        # else:
-        category_list = self.category_list
-
-        messages = [
-            SystemMessage(content=chat_system_category_search),
-            HumanMessage(content=chat_assistant_category_search.format(search_query=query, category_list=str(category_list)))
-        ]
-
-        output = self.backbone_model.generate([messages])
-        response = output.generations[0][0].text
-        response = response.replace("'", "").replace("*", "")
-        print(response)
-        searched_category = "Clothing" 
-        for prefix in ["Selected category : ", "Selected category: "]:
-            if prefix in response:
-                searched_category = response.split(prefix, 1)[1]
-                break
-
-        if searched_category not in self.category_list:
-            searched_category = "Clothing"
-
-        print(f"[INFO] Selected category: {searched_category}")
-
-        return searched_category
         
-
     def _load_item_database(self):
-        with open(f'data/{self.product_category}/meta_dict.json', 'r') as f:
-            self.item_db = json.load(f)
-        
-        with open(f'data/{self.product_category}/item_embedding_nv_v2.pkl', 'rb') as file:
+
+        with open(f'data/{self.product_category}/item_embedding_st5.pkl', 'rb') as file:
             self.emb = pickle.load(file)
 
-        with open(f'data/{self.product_category}/asin2id.json', 'r') as f:
-            asin2id = json.load(f)
-        self.id2asin = {value: key for key, value in asin2id.items()}
-        
-        with open(f'data/{self.product_category}/category_dict.json', 'r') as f:
-            self.category_dict = json.load(f)
-        self.category_list = list(self.category_dict.keys())
+        with open(f'data/{self.product_category}/css_data.json', 'r') as f:
+            css_data = json.load(f)
+
+        self.item_db = css_data['meta_dict']
+
         
