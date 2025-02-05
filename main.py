@@ -14,6 +14,7 @@ torch.cuda.init()
 print(torch.cuda.is_available())
 torch.cuda.reset_peak_memory_stats(device=None)
 
+
 def main(cmd_args, dataset):
     
     tool = Tool()
@@ -21,36 +22,54 @@ def main(cmd_args, dataset):
     SR = 0
     AT = 0
     
-    for data_idx in tqdm(range(4)):
+    for data_idx in tqdm(range(5)):
         
         data = random.choice(dataset)
+
         user = Seeker(data, cmd_args.user_model)
         system = Recommender(tool, cmd_args.rec_model)
+        
         conversation_history = [
             HumanMessage(content=user.init_utt),
         ]
+        
         output = {
             'thoughts': [],
             'actions': []
         }
-        at = 0
-        for i in range(cmd_args.max_turn):
-            thought, action = system.plan(conversation_history)
-            sys_utt = system.generate_utterance(action, conversation_history)
-            conversation_history.append(AIMessage(content=sys_utt))
-            usr_utt = user.generate_utterance(conversation_history)
-            conversation_history.append(HumanMessage(content=usr_utt))
-            print(f"\033[1;34mSystem: {sys_utt}\033[0m\n")
-            print(f"\033[1;32mUser: {usr_utt}\033[0m\n")
-            output['thoughts'].append(thought)
-            output['actions'].append(action)
-            at += 1
-            if "#STOP#" in usr_utt:
-                print("Conversation is stopped.")
-                SR += 1
-                AT += at
-                break
-        _save_conversation_history(output, conversation_history)
+
+        try:
+
+            for i in range(cmd_args.max_turn):
+                thought, action = system.plan(conversation_history)
+                
+                sys_utt = system.generate_utterance(action, conversation_history)
+                conversation_history.append(AIMessage(content=sys_utt))
+
+                usr_utt = user.generate_utterance(conversation_history)
+                conversation_history.append(HumanMessage(content=usr_utt))
+                
+                print(f"\033[1;34mSystem: {sys_utt}\033[0m\n")
+                print(f"\033[1;32mUser: {usr_utt}\033[0m\n")
+
+                output['thoughts'].append(thought)
+                output['actions'].append(action)
+                
+                if "#STOP#" in usr_utt:
+                    print("Conversation is stopped.")
+                    SR += 1
+                    AT += i+1
+                    break
+
+            _save_conversation_history(output, conversation_history)
+        
+        except:
+            continue
+        
+    print("Success Rate: ", SR/cmd_args.sample_times)
+    print("Average Turns: ", AT/SR)
+
+
 def _save_conversation_history(output, conversation_history):
     serializable_history = [
         {

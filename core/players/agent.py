@@ -6,7 +6,7 @@ from langchain_community.chat_models import ChatOpenAI
 from langchain.schema import HumanMessage, AIMessage, SystemMessage
 
 
-class Memory:
+class Profile:
     def __init__(self):
         self.preference = None
         self.personality = None
@@ -37,7 +37,7 @@ class Recommender:
     def __init__(self, tool, model_name):
         self.model = ChatOpenAI(model=model_name)
         self.tool = tool
-        self.memory = Memory()
+        self.memory = Profile()
         self.accumulated_history = []
 
     def plan(self, conversation_history):
@@ -52,8 +52,8 @@ class Recommender:
         response = output.generations[0][0].text
         response = response.strip("'```json").strip("```'")
         response = response.replace("{{","{").replace("}}","}").replace("None", "null")
-        print(response)
         response = json.loads(response)
+        print(response)
         
         thought = response['Thoughts']
         user_profile = response['User Profile']
@@ -63,9 +63,14 @@ class Recommender:
         print("Updated category path: ", user_profile['Category Path'])
         self.memory.update(user_profile)
 
-        if 'Item ID' in thought and thought['Item ID'] != 'None':
-            item = thought['Item ID'].split(", ")[0].split("; ")[0]
-            self.recommendation = self.tool.retriever.retrieve_by_id(item)
+        if 'Item ID' in user_profile and user_profile['Item ID'] is not None and user_profile['Item ID'] != 'null':
+            if isinstance(user_profile['Item ID'], list):
+                item = user_profile['Item ID'][0]
+                if item is not None:
+                    self.recommendation = self.tool.retriever.retrieve_by_id(item)
+            else:
+                item = user_profile['Item ID'].split(", ")[0].split("; ")[0]
+                self.recommendation = self.tool.retriever.retrieve_by_id(item)
 
         return thought, action
     

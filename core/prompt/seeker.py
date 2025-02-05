@@ -29,10 +29,13 @@ Handling Product Suggestions
 
 
 user_prompt = """
+
 Generate next utterance based on your profile.
+
 If you are provided with category path options, select one of options.
 If you are provided recommendations does not match with your preference, reject recommendation with why does not match with you. 
 If the Recommender suggests an item, show interest in attributes that align with your target needs.
+When you mention an item, include its ID.
 Then, ask the Recommender to elaborate on why this item is a good fit for you, encouraging them to persuade you.
 If Recommender's persuasion aligns with decision making style, you should purchase the recommendation, stop the conversation by adding "##STOP##" at the end of your response.
 
