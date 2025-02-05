@@ -22,17 +22,11 @@ Your goal is to help the user efficiently narrow down their choice by presenting
 
 
 chat_assistant_category_narrow = """
-
 Identify the relevant categories based on the search query and generate a direct question to guide the user in selecting one.
 
 Input:
 - Search Query: {search_query}
 - Available Categories: {category_list}
-
-Instructions:
-1. Analyze the search query and identify relevant categories from the available list.
-2. Compare the search query with the available categories to find those that closely match the user’s intent.
-3. Formulate a concise question that lists the relevant categories and asks the user to choose one.
 
 Output Format:
 Question: Are you interested in [Relevant Category 1], [Relevant Category 2], or [Relevant Category 3]?

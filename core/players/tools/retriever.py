@@ -1,3 +1,4 @@
+import ast
 import json
 import pickle
 import numpy as np
@@ -19,8 +20,10 @@ class Item(object):
     def __format_product_data_short_ver(self, data):
         try:
             formatted_text = f"""
-            Product Name: {data.get('title', 'N/A')} 
+            Product Name: <{data.get('title', 'N/A')}> 
             Item ID: {self.id}
+            [Price]: ${data.get('price', 'N/A')}
+            Categories: {data.get('categories', 'N/A')}
             Description:
             {data.get('description', ['N/A'])[0]}
             """
@@ -31,7 +34,8 @@ class Item(object):
     def __format_product_data(self, data):
         try:
             formatted_text = f"""
-            Product Name: {data.get('title', 'N/A')}
+            Product Name: <{data.get('title', 'N/A')}>
+            Item ID: {self.id}
             Main Category: {data.get('main_category', 'N/A')}
             Store: {data.get('store', 'N/A')}
 
@@ -69,8 +73,10 @@ class Retriever(object):
         self.backbone_model = ChatOpenAI(model='gpt-4o-mini')
 
 
-    def retrieve(self, query, category_path, category_tree):
-
+    def retrieve(self, query, budget_range, category_path, category_tree):
+        import ast
+        max_price = ast.literal_eval(budget_range)
+        max_price = float(max_price[1])
         searched_category = category_path[-1] if len(category_path) > 0 else 'Clothing, Shoes & Jewelry'
 
         specific_keys = category_tree.get_ids_by_path(category_path)
@@ -81,11 +87,35 @@ class Retriever(object):
         # query_emb = self.model.encode(self._add_eos([query]), batch_size=1, prompt=query_prefix, normalize_embeddings=True)
 
         query_emb = self.model.encode(query)
-        retrieve_item_ids = self._find_top_k_similar(category_dict, query_emb)
-        retrieve_items = [ Item(retrieve_item_id, self.item_db[retrieve_item_id]) for retrieve_item_id in retrieve_item_ids ]
+        retrieve_item_ids = self._find_top_k_similar(category_dict, query_emb, k=20)
+        top_k_candidates = []
+        for candidate in retrieve_item_ids:
+            if float(self.item_db[candidate]['price']) < max_price:
+                top_k_candidates.append(Item(candidate, self.item_db[candidate]))
+        # retrieve_items = [Item(retrieve_item_id, self.item_db[retrieve_item_id]) for retrieve_item_id in retrieve_item_ids ]
         
-        return searched_category, retrieve_items
+        return searched_category, top_k_candidates[:3]
 
+    def select_candidate(self, item_id, budget_range, category_path, category_tree):
+        if isinstance(budget_range, str):
+            max_price = float(ast.literal_eval(budget_range)[1])
+        elif isinstance(budget_range, list):
+            max_price = float(budget_range[1])
+        else:
+            max_price = float(budget_range[1])
+        
+        selected_emb = self.emb[item_id]
+        specific_keys = category_tree.get_ids_by_path(category_path)
+        category_dict = {key: self.emb[key] for key in specific_keys if key in self.emb}
+        retrieve_item_ids = self._find_top_k_similar(category_dict, selected_emb, k=20)
+
+        top_k_candidates = []
+        for candidate in retrieve_item_ids:
+            if float(self.item_db[candidate]['price']) > max_price:
+                top_k_candidates.append(Item(candidate, self.item_db[candidate]))
+        # top_k_candidates = [Item(retrieve_item_id, self.item_db[retrieve_item_id]) for retrieve_item_id in retrieve_item_ids ]
+
+        return top_k_candidates
 
     def _add_eos(self, input_examples):
         input_examples = [input_example + self.model.tokenizer.eos_token for input_example in input_examples]

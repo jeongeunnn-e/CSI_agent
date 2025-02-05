@@ -1,4 +1,6 @@
 import json
+import pdb
+
 
 def load_dataset(filename='data/clothing/css_data.json'):
 
@@ -26,7 +28,8 @@ class UserRequest:
 
         self.decision_making_style = data['decision_making_style']
         self.dialogue_openness = data['dialogue_openness']
-        self.target_category = data['target_category']
+        self.target_category = data['target_category'][:5]
+        self.target_category = [cate.replace(',', '') for cate in self.target_category]
 
     def print(self):
         print(f"ID: {self.id}")
@@ -36,3 +39,7 @@ class UserRequest:
         print(f"Target Needs: {self.target_needs}")
         print(f"Budget Range: {self.budget_range}")
         print(f"Target Category: {self.target_category}")
+        print(f"Dialogue_openness: {self.dialogue_openness}")
+
+
+
