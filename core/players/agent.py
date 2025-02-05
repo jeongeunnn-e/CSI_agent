@@ -40,6 +40,8 @@ class Recommender:
         self.tool = tool
         self.reconstructed_profile = Profile()
         self.y = [ None, None]
+        self.thoughts = []
+        self.persuasion_strategies = []
 
     def plan(self, conversation_history):
 
@@ -60,6 +62,8 @@ class Recommender:
         user_profile = response['Profile']
         action = response['Action']
 
+        self.thoughts.append(response)
+
         user_profile['Category Path'] = self.tool.category_update(user_profile['Category Path'], self.reconstructed_profile.category_path)
         print("Updated category path: ", user_profile['Category Path'])
         self.reconstructed_profile.update(user_profile)
@@ -68,7 +72,8 @@ class Recommender:
             item = user_profile['Item ID'].split(", ")[0].split("; ")[0]
             self.y[0] = self.tool.retriever.retrieve_by_id(item)
 
-        return response, action
+        return thought, action
+
 
     def generate_utterance(self, action, conversation_history):
 
@@ -133,4 +138,5 @@ class Recommender:
             response = response.replace("{{", "{").replace("}}", "}")
             print(response, "\n")
             response = json.loads(response)
+            self.persuasion_strategies.append(response['strategy'])
             return response['sentence']

@@ -1,15 +1,12 @@
 import torch
-import json
-import random
+import debug
 import argparse
 from tqdm import tqdm
 
 from load_data import load_dataset
 from core.players import *
 from core.players.tool import Tool
-from core.players.tools.retriever import Retriever
 from langchain.schema import HumanMessage, AIMessage, SystemMessage
-import os
 from utils import _save_conversation_history, critic
 
 
@@ -35,8 +32,6 @@ def main(cmd_args, dataset):
 
         print(f"\033[1;34m User: {user.init_utt}\033[0m\n")
 
-        thoughts = []
-
         action = None
         res = -1
 
@@ -52,8 +47,6 @@ def main(cmd_args, dataset):
             print(f"\033[1;34mSystem: {sys_utt}\033[0m\n")
             print(f"\033[1;32mUser: {usr_utt}\033[0m\n")
 
-            thoughts.append(thought)
-
             if "#STOP#" in usr_utt:
 
                 print("Conversation is stopped.")
@@ -61,6 +54,10 @@ def main(cmd_args, dataset):
                 AT += i+1
                 
                 print(system.y[0].id, system.y[1].id)
+
+                if system.y[0].id == system.y[1].id:
+                    debug.save_bad_id(data.id)
+
                 final_item_id = critic(conversation_history)
                 if system.y[0].id == final_item_id:
                     print("Accepted in-budget item")
@@ -72,7 +69,7 @@ def main(cmd_args, dataset):
 
                 break
 
-        _save_conversation_history(thoughts, conversation_history, res)
+        _save_conversation_history(system, conversation_history, data, res)
 
     print(f'SR: {SR / (data_idx+1)} / AT: {AT / SR} / SWR: {SWR / SR}')
 
