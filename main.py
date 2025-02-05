@@ -53,19 +53,21 @@ def main(cmd_args, dataset):
                 SR += 1
                 AT += i+1
                 
-                print(system.y[0].id, system.y[1].id)
+                try:
+                    print(system.y[0].id, system.y[1].id)
+                    if system.y[0].id == system.y[1].id:
+                        debug.save_bad_id(data.id)
 
-                if system.y[0].id == system.y[1].id:
-                    debug.save_bad_id(data.id)
-
-                final_item_id = critic(conversation_history)
-                if system.y[0].id == final_item_id:
-                    print("Accepted in-budget item")
+                    final_item_id = critic(conversation_history)
+                    if system.y[0].id == final_item_id:
+                        print("Accepted in-budget item")
+                        res = 0
+                    elif system.y[1].id == final_item_id:
+                        print("Accepted out-of-budget item")
+                        SWR += 1    
+                        res = 1
+                except: 
                     res = 0
-                elif system.y[1].id == final_item_id:
-                    print("Accepted out-of-budget item")
-                    SWR += 1    
-                    res = 1
 
                 break
 
