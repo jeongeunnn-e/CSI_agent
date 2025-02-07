@@ -16,7 +16,7 @@ torch.cuda.reset_peak_memory_stats(device=None)
 
 
 def main(cmd_args, dataset):
-    tool = Tool()
+    tool = Tool(cmd_args.file_name)
     
     SR, AT, SWR = 0, 0, 0
 
@@ -52,23 +52,21 @@ def main(cmd_args, dataset):
                 print("Conversation is stopped.")
                 SR += 1
                 AT += i+1
-                
-                try:
-                    print(system.y[0].id, system.y[1].id)
-                    if system.y[0].id == system.y[1].id:
-                        debug.save_bad_id(data.id)
 
-                    final_item_id = critic(conversation_history)
-                    if system.y[0].id == final_item_id:
-                        print("Accepted in-budget item")
-                        res = 0
-                    elif system.y[1].id == final_item_id:
-                        print("Accepted out-of-budget item")
-                        SWR += 1    
-                        res = 1
-                except: 
+                print(system.y[0].id, system.y[1].id)
+
+                if system.y[0].id == system.y[1].id:
+                    debug.save_bad_id(data.id)
+
+                final_item_id = critic(conversation_history)
+                if system.y[0].id == final_item_id:
+                    print("Accepted in-budget item")
                     res = 0
-
+                elif system.y[1].id == final_item_id:
+                    print("Accepted out-of-budget item")
+                    SWR += 1    
+                    res = 1
+                
                 break
 
         _save_conversation_history(system, conversation_history, data, res)
