@@ -16,7 +16,7 @@ torch.cuda.reset_peak_memory_stats(device=None)
 
 
 def main(cmd_args, dataset):
-    tool = Tool(cmd_args.file_name)
+    tool = Tool(cmd_args.domain, cmd_args.file_name)
     
     SR, AT, SWR = 0, 0, 0
 
@@ -25,7 +25,7 @@ def main(cmd_args, dataset):
         data = dataset[data_idx]
 
         user = Seeker(data, cmd_args.user_model)
-        system = Recommender(tool, cmd_args.rec_model)
+        system = get_agent(cmd_args.rec_model)(tool, cmd_args.rec_model)
         conversation_history = [
             HumanMessage(content=user.init_utt),
         ]
@@ -36,8 +36,9 @@ def main(cmd_args, dataset):
         res = -1
 
         for i in range(cmd_args.max_turn):
-
+            
             thought, action = system.plan(conversation_history)
+
             sys_utt = system.generate_utterance(action, conversation_history)
             conversation_history.append(AIMessage(content=sys_utt))
 
@@ -52,17 +53,12 @@ def main(cmd_args, dataset):
                 print("Conversation is stopped.")
                 SR += 1
                 AT += i+1
-
-                print(system.y[0].id, system.y[1].id)
-
-                if system.y[0].id == system.y[1].id:
-                    debug.save_bad_id(data.id)
-
+                
                 final_item_id = critic(conversation_history)
-                if system.y[0].id == final_item_id:
+                if system.selected[0].id == final_item_id:
                     print("Accepted in-budget item")
                     res = 0
-                elif system.y[1].id == final_item_id:
+                elif final_item_id in [candidate.id for candidate in system.candidates]:
                     print("Accepted out-of-budget item")
                     SWR += 1    
                     res = 1
@@ -91,7 +87,9 @@ if __name__ == "__main__":
     parser.add_argument('--user_model', type=str, default='gpt-4o-mini', help='model name')
     parser.add_argument('--rec_model', type=str, default='gpt-4o-mini', help='model name')
     parser.add_argument('--file_name', type=str, default='data/clothing/css_data.json')
-
+    parser.add_argument('--domain', type=str, default='clothing', help='domain name')
+    parser.add_argument('--temperature', type=float, default=0.7, help='temperature')
+    
     cmd_args = parser.parse_args()
     cmd_args.device = torch.device('cuda') if torch.cuda.is_available() else 'cpu'
 
