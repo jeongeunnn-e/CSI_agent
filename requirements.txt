@@ -120,7 +120,7 @@ toml==0.10.2
 torch==2.7.1
 torchaudio==2.7.1
 torchelastic==0.2.2
-torchvision==0.16.0
+torchvision==0.22.1
 tqdm==4.67.1
 transformers==4.52.4
 triton==2.1.0
