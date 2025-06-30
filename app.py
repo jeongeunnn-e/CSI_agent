@@ -31,9 +31,17 @@ def save_output(output):
     import datetime
 
     current_date = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    output_filename = f"chat_demo_output/{current_date}.json"
-    with open(output_filename, "w", encoding="utf-8") as f:
-        json.dump(output, f, indent=4)
+    output_filename = f"chat_demo_output_{current_date}.json"
+    import io
+    import streamlit as st
+    json_str = json.dumps(output, indent=4, ensure_ascii=False)
+    buffer = io.BytesIO(json_str.encode('utf-8'))
+    st.download_button(
+        label="Download Output",
+        data=buffer,
+        file_name=output_filename,
+        mime="application/json"
+    )
     return
 
 
@@ -66,6 +74,30 @@ if st.sidebar.button('Reset Conversation'):
 conversation_history = st.session_state['conversation_history']
 system = st.session_state['system']
 stopped = st.session_state.get('stopped', False)
+
+# 사용자 general preference, target needs, decision-making style, dialogue openness 입력/선택
+if 'user_profile' not in st.session_state:
+    with st.form("user_profile_form", clear_on_submit=False):
+        st.subheader("📝 Please enter your preferences before starting the chat")
+        general_pref = st.text_input("General Preference")
+        target_needs = st.text_input("Target Needs")
+        decision_styles = ["Rational", "Dependent", "Intuitive"]
+        decision_style = st.selectbox("Decision-Making Style", decision_styles)
+        openness_levels = ["Active", "Passive", "Less Active"]
+        dialogue_openness = st.selectbox("Dialogue Openness", openness_levels)
+        submitted = st.form_submit_button("Start Chat")
+        if submitted:
+            st.session_state['user_profile'] = {
+                "general_pref": general_pref,
+                "target_needs": target_needs,
+                "decision_style": decision_style,
+                "dialogue_openness": dialogue_openness
+            }
+            st.success("Profile saved! Start chatting below.")
+
+# 프로필이 입력되지 않으면 채팅 UI를 숨김
+if 'user_profile' not in st.session_state:
+    st.stop()
 
 # Chat display
 for msg in conversation_history:
@@ -102,6 +134,8 @@ if not stopped:
                 st.session_state['SWR'],
                 None
             )
+            output['user_profile'] = st.session_state['user_profile']
+            
             save_output(output)
         else:
             st.session_state['pending_agent'] = True
