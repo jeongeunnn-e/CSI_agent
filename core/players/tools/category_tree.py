@@ -181,17 +181,14 @@ class SampleTree:
         return target_node.items if target_node else []
 
 
-def get_tree():
+def get_tree(path):
     import os
     def load_json(file_path):
         with open(file_path, "r") as f:
             return json.load(f)
 
-    domain = 'Clothing_Shoes_and_Jewelry'
-    data_dir = 'data/clothing'
-
-    meta_dict = load_json(os.path.join(data_dir, 'meta_dict.json'))
-    item_keys = list(meta_dict.keys())
+    data = load_json(path)
+    meta_dict = data['meta_dict']
 
     categories = [([cate.replace(',', '') for cate in meta['categories'][:5]], meta['parent_asin']) for asin, meta in meta_dict.items()]
 

@@ -5,9 +5,9 @@ from core.players.tools.retriever import Retriever
 
 
 class Tool:
-    def __init__(self):
-        self.category_tree = ct.get_tree()
-        self.retriever = Retriever()
+    def __init__(self, domain, path):
+        self.category_tree = ct.get_tree(path.replace('clothing', domain))
+        self.retriever = Retriever(domain)
 
     def category_search(self, current_path):
 

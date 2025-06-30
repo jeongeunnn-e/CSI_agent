@@ -6,10 +6,11 @@ from langchain.schema import HumanMessage, AIMessage, SystemMessage
 class Seeker:
     def __init__(self, user_data, model_name):
         self.model = ChatOpenAI(model=model_name, temperature=0)
+        self.openness=  user_data.dialogue_openness
 
         self.system_msg = self.__build_system_msg(user_data)
         self.init_utt = self._init_utt(user_data)
-
+        self.data = user_data
         user_data.print()
 
     def __build_system_msg(self, data):
@@ -28,7 +29,7 @@ class Seeker:
     def generate_utterance(self, conversation_history):
         messages = [
             self.system_msg,
-            SystemMessage(content=user_prompt.format(conversation_history=self._conv_history_to_string(conversation_history)))
+            SystemMessage(content=user_prompt.format(conversation_history=self._conv_history_to_string(conversation_history), dialogue_openness=self.openness))
         ]
         output = self.model.generate([messages])
         response = output.generations[0][0].text
@@ -41,7 +42,7 @@ class Seeker:
         # #
         messages = [
             self.system_msg,
-            HumanMessage(content=user_inital_prompt)
+            HumanMessage(content=user_initial_prompt.format(dialogue_openness=user_data.dialogue_openness))
         ]
         output = self.model.generate([messages])
         response = output.generations[0][0].text
