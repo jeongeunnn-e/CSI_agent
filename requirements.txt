@@ -63,7 +63,6 @@ markdown-it-py==3.0.0
 marshmallow==3.26.1
 matplotlib==3.10.3
 mdurl==0.1.2
-mkl-service==2.4.0
 multidict==6.5.0
 multiprocess==0.70.16
 murmurhash==1.0.13
